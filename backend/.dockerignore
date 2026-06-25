@@ -1,0 +1,55 @@
+﻿# =============================================================================
+# backend/.dockerignore
+# Author : Mohamed Abdelkader <muhammadabdelkader@github>
+# Project: DEPI DevOps Graduation Project — Deliverable #1 (Dockerize)
+#
+# PURPOSE
+# ───────
+# Lists files and directories that Docker should EXCLUDE from the build context
+# when building the backend image. A smaller build context means:
+#   - Faster `docker build` (less data sent to the Docker daemon).
+#   - Smaller images (excluded files never end up in any layer).
+#   - Improved security (secrets and env files never enter the build context).
+# =============================================================================
+
+# Node.js dependencies — Docker installs these inside the image with `npm ci`,
+# so we never need to copy the local node_modules into the build context.
+node_modules/
+
+# Compiled output — the builder stage regenerates dist/ with `npm run build`.
+# Including a stale local dist/ could shadow the freshly compiled version.
+dist/
+
+# Environment files — MUST never be baked into an image layer. Secrets are
+# supplied at runtime via docker-compose env_file or orchestrator secrets.
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Uploaded product images — these are runtime data, not source code.
+# They are persisted via the named volume "backend-uploads" in docker-compose.
+uploads/
+
+# Git metadata — large and irrelevant inside the container.
+.git/
+.gitignore
+
+# Test files — not required in the production image.
+test-*.js
+
+# Log files — should never be shipped in an image.
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-generated files.
+.DS_Store
+Thumbs.db
+
+# Editor / IDE configuration directories.
+.vscode/
+.idea/
