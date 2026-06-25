@@ -1,0 +1,183 @@
+﻿# =============================================================================
+# Amazona — docker-compose.yml
+# Author : Mohamed Abdelkader <muhammadabdelkader@github>
+# Project: DEPI DevOps Graduation Project — Deliverable #1 (Dockerize)
+#
+# ARCHITECTURE (3-tier, local Docker)
+# ────────────────────────────────────
+#   frontend  (Nginx, port 3000:80)
+#       ↕  HTTP API calls to /api/*
+#   backend   (Node.js + Express, port 5000, internal only)
+#       ↕  Mongoose ORM
+#   mongo     (MongoDB 7, internal only, persistent volume)
+#
+# NETWORK ISOLATION
+# ─────────────────
+#   All three services share the private "amazona-network" bridge network.
+#   No service ports are exposed to the host unless explicitly listed under
+#   `ports:`. MongoDB has NO host port exposed for security.
+#
+# STARTUP ORDER (health-based dependency chain)
+# ──────────────────────────────────────────────
+#   1. mongo starts → health check passes (mongosh ping)
+#   2. backend starts (depends_on mongo: service_healthy) → health check passes
+#   3. frontend starts (depends_on backend: service_healthy)
+#
+# This ensures the API is truly ready before Nginx starts serving the SPA,
+# and MongoDB is truly ready before the backend tries to connect.
+# =============================================================================
+
+version: "3.9"
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Service: mongo
+  # MongoDB 7 database. Internal-only — NOT exposed on any host port.
+  # Data is persisted in the named volume "mongo-data".
+  # ---------------------------------------------------------------------------
+  mongo:
+    image: mongo:7
+    container_name: amazona-mongo
+    restart: unless-stopped
+
+    # Named volume mounts MongoDB's data directory so data survives container
+    # restarts, recreations, and `docker compose down` (but NOT `down -v`).
+    volumes:
+      - mongo-data:/data/db
+
+    # Health check using mongosh — Docker will not mark this container "healthy"
+    # until this command succeeds. The backend depends_on this health status.
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 10s
+      start_period: 20s
+      retries: 5
+
+    # NOT exposing MongoDB on a host port intentionally.
+    # Only containers on amazona-network can reach it via hostname "mongo:27017".
+    # This follows least-privilege networking — the DB is never reachable from
+    # the host or the internet.
+    networks:
+      - amazona-network
+
+  # ---------------------------------------------------------------------------
+  # Service: backend
+  # Node.js + Express API server. Starts only after mongo is healthy.
+  # Exposed on host port 5000 for direct curl testing during development.
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: amazona-backend
+    restart: unless-stopped
+
+    # depends_on with condition: service_healthy means Docker Compose will
+    # wait until the mongo health check passes before starting the backend.
+    # (Plain `depends_on` without a condition only waits for the container to
+    # START, not for it to be ready — the condition: syntax is the fix.)
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+    # Runtime environment variables.
+    # NODE_ENV, PORT, and MONGODB_URL are defined inline because their values
+    # are known and not secret. JWT_SECRET, PAYPAL_CLIENT_ID, and AWS variables
+    # are injected from the .env file (never committed to Git).
+    #
+    # WHY NODE.JS USES RUNTIME ENV VARS (vs. React using build-time ARGs):
+    #   Node.js reads process.env when the server STARTS — at runtime. So we
+    #   can freely change secrets via environment variables without rebuilding
+    #   the image. React compiles env vars INTO the JS bundle at build time, so
+    #   it cannot read runtime variables — hence it needs ARG at build time.
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URL=mongodb://mongo:27017/amazona
+
+    # The remaining secrets are loaded from .env (env_file).
+    # Variables in the environment: block above OVERRIDE the env_file values.
+    env_file:
+      - .env
+
+    # Named volume for Multer uploads.
+    # Using a named volume (instead of a host bind-mount) ensures:
+    #   - Uploads survive container recreations.
+    #   - In later AWS/EKS steps, this volume can be backed by EFS or EBS.
+    volumes:
+      - backend-uploads:/app/uploads
+
+    # Expose backend on host port 5000 so you can run:
+    #   curl http://localhost:5000/api/health
+    ports:
+      - "5000:5000"
+
+    # Health check on the API health endpoint.
+    # frontend depends_on backend condition: service_healthy.
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
+
+    networks:
+      - amazona-network
+
+  # ---------------------------------------------------------------------------
+  # Service: frontend
+  # Nginx serving the pre-built React SPA. Starts only after backend is healthy.
+  # Exposed on host port 3000 (maps to Nginx port 80 inside the container).
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Build-time argument: tells CRA where the API lives so it can bake the
+        # URL into the JS bundle. Reads REACT_APP_API_URL from the .env file or
+        # the host environment.
+        # Change this to your server IP or domain before building for a remote env.
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5000}
+
+    container_name: amazona-frontend
+    restart: unless-stopped
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    ports:
+      - "3000:80"
+
+    networks:
+      - amazona-network
+
+
+# =============================================================================
+# Named Volumes
+# Named volumes are managed by Docker and persist beyond the container lifecycle.
+# Run `docker volume ls` to see them.
+# Run `docker compose down -v` ONLY if you want to delete all data (destructive).
+# =============================================================================
+volumes:
+  # MongoDB data directory — persists the entire database.
+  mongo-data:
+    driver: local
+
+  # Multer product image uploads — persists uploaded files across restarts.
+  backend-uploads:
+    driver: local
+
+
+# =============================================================================
+# Networks
+# A dedicated bridge network isolates Amazona containers from other containers
+# on the host. Services communicate by container name (DNS resolution built in).
+# =============================================================================
+networks:
+  amazona-network:
+    driver: bridge
