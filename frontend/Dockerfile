@@ -60,7 +60,7 @@ COPY package*.json ./
 
 # Install ALL frontend dependencies (react-scripts is a devDependency needed
 # to run the build). `npm ci` ensures reproducible, lock-file-based installs.
-RUN npm ci
+RUN npm ci --legacy-peer-deps && npm install ajv@^8 --legacy-peer-deps
 
 # Copy the rest of the frontend source code.
 COPY . .

@@ -45,7 +45,7 @@ COPY package*.json ./
 #   - Uses package-lock.json for deterministic, reproducible installs.
 #   - Fails if lock file is out of sync with package.json.
 #   - Does not write to package-lock.json (read-only).
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy the rest of the backend source code.
 # .dockerignore prevents node_modules, dist/, uploads/, and .env* from being
@@ -82,7 +82,7 @@ COPY package*.json ./
 # Install ONLY production runtime dependencies (--omit=dev is the npm v7+ flag
 # equivalent to the older --only=production). This excludes Babel, nodemon,
 # eslint, and all other build-time tools, keeping the final image small.
-RUN npm ci --omit=dev
+RUN npm ci --legacy-peer-deps --omit=dev
 
 # Copy only the compiled output from the builder stage.
 # Raw source code is intentionally NOT copied — dist/ is all we need at runtime.
