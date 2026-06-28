@@ -1,21 +1,6 @@
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-  filter {
-    name   = "availabilityZone"
-    values = ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d", "us-east-1f"]
-  }
-}
-
 # ─── EKS Cluster IAM Role ────────────────────────────────────────────────────
-resource "aws_iam_role" "eks_cluster" {
-  name = "${var.project_name}-eks-cluster-role"
+resource "aws_iam_role" "cluster" {
+  name = "${var.project_name}-${var.environment}-eks-cluster-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -26,21 +11,47 @@ resource "aws_iam_role" "eks_cluster" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
+resource "aws_iam_role_policy_attachment" "cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.eks_cluster.name
+  role       = aws_iam_role.cluster.name
+}
+
+# ─── Security Group ──────────────────────────────────────────────────────────
+resource "aws_security_group" "cluster" {
+  name        = "${var.project_name}-${var.environment}-eks-cluster-sg"
+  description = "Security group for EKS cluster"
+  vpc_id      = var.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-eks-cluster-sg"
+  }
 }
 
 # ─── EKS Cluster ─────────────────────────────────────────────────────────────
 resource "aws_eks_cluster" "main" {
-  name     = "${var.project_name}-cluster"
-  role_arn = aws_iam_role.eks_cluster.arn
-  version  = var.eks_cluster_version
+  name     = "${var.project_name}-${var.environment}-cluster"
+  role_arn = aws_iam_role.cluster.arn
+  version  = var.cluster_version
+
   vpc_config {
-    subnet_ids = data.aws_subnets.default.ids
+    subnet_ids              = var.public_subnet_ids
+    endpoint_private_access = false
+    endpoint_public_access  = true
+    security_group_ids      = [aws_security_group.cluster.id]
   }
-  depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
-  tags = { Name = "${var.project_name}-cluster" }
+
+  depends_on = [aws_iam_role_policy_attachment.cluster_policy]
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-cluster"
+  }
 }
 
 # ─── OIDC Provider ───────────────────────────────────────────────────────────
@@ -55,8 +66,8 @@ resource "aws_iam_openid_connect_provider" "eks" {
 }
 
 # ─── Node Group IAM Role ─────────────────────────────────────────────────────
-resource "aws_iam_role" "eks_nodes" {
-  name = "${var.project_name}-eks-nodes-role"
+resource "aws_iam_role" "node" {
+  name = "${var.project_name}-${var.environment}-eks-node-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -67,54 +78,68 @@ resource "aws_iam_role" "eks_nodes" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
+resource "aws_iam_role_policy_attachment" "node_worker_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.node.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
+resource "aws_iam_role_policy_attachment" "node_cni_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.node.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks_ecr_policy" {
+resource "aws_iam_role_policy_attachment" "node_registry_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.node.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks_ebs_csi_policy" {
+resource "aws_iam_role_policy_attachment" "node_ebs_csi_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
-  role       = aws_iam_role.eks_nodes.name
+  role       = aws_iam_role.node.name
 }
 
 # ─── Node Group ──────────────────────────────────────────────────────────────
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "${var.project_name}-nodes"
-  node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = data.aws_subnets.default.ids
-  instance_types  = [var.eks_node_instance_type]
+  node_group_name = "${var.project_name}-${var.environment}-nodes"
+  node_role_arn   = aws_iam_role.node.arn
+  subnet_ids      = var.public_subnet_ids
+  instance_types  = var.node_instance_types
+  capacity_type   = "ON_DEMAND"
+
   scaling_config {
-    desired_size = var.eks_node_desired
-    max_size     = var.eks_node_max
-    min_size     = var.eks_node_min
+    desired_size = var.node_desired_size
+    min_size     = var.node_min_size
+    max_size     = var.node_max_size
   }
+
+  update_config {
+    max_unavailable_percentage = 25
+  }
+
   depends_on = [
-    aws_iam_role_policy_attachment.eks_worker_node_policy,
-    aws_iam_role_policy_attachment.eks_cni_policy,
-    aws_iam_role_policy_attachment.eks_ecr_policy,
-    aws_iam_role_policy_attachment.eks_ebs_csi_policy,
+    aws_iam_role_policy_attachment.node_worker_policy,
+    aws_iam_role_policy_attachment.node_cni_policy,
+    aws_iam_role_policy_attachment.node_registry_policy,
+    aws_iam_role_policy_attachment.node_ebs_csi_policy,
   ]
-  tags = { Name = "${var.project_name}-nodes" }
+
+  lifecycle {
+    ignore_changes = [scaling_config[0].desired_size]
+  }
+
+  tags = { Name = "${var.project_name}-${var.environment}-nodes" }
 }
 
 # ─── EBS CSI Driver Addon ────────────────────────────────────────────────────
 resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name = aws_eks_cluster.main.name
-  addon_name   = "aws-ebs-csi-driver"
-  depends_on   = [aws_eks_node_group.main]
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "aws-ebs-csi-driver"
+  service_account_role_arn    = aws_iam_role.ebs_csi.arn
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+  depends_on = [aws_eks_node_group.main, aws_iam_role_policy_attachment.ebs_csi]
 }
-
 # ─── IRSA for EBS CSI Driver ─────────────────────────────────────────────────
 data "aws_iam_policy_document" "ebs_csi_assume_role" {
   statement {
@@ -133,7 +158,7 @@ data "aws_iam_policy_document" "ebs_csi_assume_role" {
 }
 
 resource "aws_iam_role" "ebs_csi" {
-  name               = "${var.project_name}-ebs-csi-role"
+  name               = "${var.project_name}-${var.environment}-ebs-csi-role"
   assume_role_policy = data.aws_iam_policy_document.ebs_csi_assume_role.json
 }
 
@@ -142,7 +167,7 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
   role       = aws_iam_role.ebs_csi.name
 }
 
-# ─── IRSA for AWS Load Balancer Controller ───────────────────────────────────
+# ─── IRSA for ALB Controller ─────────────────────────────────────────────────
 data "aws_iam_policy_document" "alb_assume_role" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -160,12 +185,12 @@ data "aws_iam_policy_document" "alb_assume_role" {
 }
 
 resource "aws_iam_role" "alb_controller" {
-  name               = "${var.project_name}-alb-controller-role"
+  name               = "${var.project_name}-${var.environment}-alb-controller-role"
   assume_role_policy = data.aws_iam_policy_document.alb_assume_role.json
 }
 
 resource "aws_iam_policy" "alb_controller" {
-  name   = "${var.project_name}-AWSLoadBalancerControllerIAMPolicy"
+  name   = "${var.project_name}-${var.environment}-AWSLoadBalancerControllerPolicy"
   policy = file("${path.module}/alb-policy.json")
 }
 
