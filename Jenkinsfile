@@ -31,8 +31,8 @@ pipeline {
         stage('3 - Backend Tests') {
             steps {
                 dir('backend') {
-                    sh 'npm install'
-                    sh 'npm test -- --watchAll=false --passWithNoTests'
+                    sh 'npm install --legacy-peer-deps'
+                    sh 'npm test -- --passWithNoTests'
                 }
             }
         }
