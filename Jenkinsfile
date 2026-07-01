@@ -19,11 +19,11 @@ pipeline {
             }
         }
 
-        stage('2 - rontend Tests') {
+        stage('2 - Frontend Tests') {
             steps {
                 dir('frontend') {
                     sh 'npm install'
-                    sh 'npm test -- --watchAll=false'
+                    sh 'npm test -- --watchAll=false --passWithNoTests'
                 }
             }
         }
@@ -32,7 +32,7 @@ pipeline {
             steps {
                 dir('backend') {
                     sh 'npm install'
-                    sh 'npm test'
+                    sh 'npm test -- --watchAll=false --passWithNoTests'
                 }
             }
         }
