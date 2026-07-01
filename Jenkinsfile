@@ -55,15 +55,12 @@ pipeline {
         }
 
         failure {
-            script {
-                node {
-                    sh """
-                        curl -X POST -H 'Content-type: application/json' \
-                        --data '{"text":"❌ Pipeline failed: ${JOB_NAME} #${BUILD_NUMBER}"}' \
-                        ${SLACK_WEBHOOK} || true
-                    """
-                }
-            }
+            // Using single quotes prevents Groovy parsing errors and reads directly from env
+            sh '''
+                curl -X POST -H 'Content-type: application/json' \
+                --data "{\\"text\\":\\"❌ Pipeline failed: ${JOB_NAME} #${BUILD_NUMBER}\\"}" \
+                $SLACK_WEBHOOK || true
+            '''
         }
     }
 }
