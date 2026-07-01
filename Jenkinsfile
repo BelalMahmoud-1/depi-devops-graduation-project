@@ -25,12 +25,14 @@ pipeline {
                 }
             }
         }
-    stage('3 - Backend Install & Tests') {
+stage('3 - Backend Install & Tests') {
     steps {
         dir('backend') {
             sh '''
-                npm install --save-dev eslint@8 eslint-config-airbnb@18
-                npm install --legacy-peer-deps
+                rm -rf node_modules package-lock.json
+
+                npm install --legacy-peer-deps --force
+
                 npm test -- --passWithNoTests
             '''
         }
