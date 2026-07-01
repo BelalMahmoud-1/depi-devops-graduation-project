@@ -1,5 +1,8 @@
 pipeline {
     agent any
+      tools {
+        nodejs 'node-18'
+    }
 
     environment {
         AWS_REGION = 'us-east-1'
@@ -9,6 +12,7 @@ pipeline {
     }
 
     stages {
+
         stage('1 - Checkout') {
             steps {
                 checkout scm
@@ -35,14 +39,12 @@ pipeline {
 
         stage('4 - Build Frontend') {
             steps {
-                sh 'echo "Building Frontend..."'
                 sh 'npm run build --prefix Frontend'
             }
         }
 
         stage('5 - Build Backend') {
             steps {
-                sh 'echo "Building Backend..."'
                 sh 'npm run build --prefix Backend'
             }
         }
@@ -52,9 +54,8 @@ pipeline {
         success {
             echo "✅ Pipeline completed successfully!"
         }
-        
         failure {
-            echo "❌ Pipeline failed during execution. Check the console log above for errors."
+            echo "❌ Pipeline failed during execution."
         }
     }
 }
