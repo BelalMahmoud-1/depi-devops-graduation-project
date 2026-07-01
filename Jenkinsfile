@@ -31,7 +31,7 @@ stage('3 - Backend Install & Tests') {
             sh '''
                 rm -rf node_modules package-lock.json
 
-                npm install --legacy-peer-deps --force
+                npm install --legacy-peer-deps --force --no-audit --no-fund
 
                 npm test -- --passWithNoTests
             '''
