@@ -8,6 +8,8 @@ pipeline {
         AWS_ACCOUNT_ID = '608645726975'
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${BUILD_ID}"
+        NPM_CONFIG_LEGACY_PEER_DEPS = 'true'
+        
     }
     stages {
         stage('1 - Checkout') {
