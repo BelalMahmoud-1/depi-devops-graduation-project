@@ -106,12 +106,20 @@ pipeline {
   }
 
   post {
-    failure {
-      sh '''
-        curl -X POST -H 'Content-type: application/json' \
-          --data "{\"text\": \"❌ Pipeline failed: ${JOB_NAME} #${BUILD_NUMBER}\"}" \
-          $SLACK_WEBHOOK || true
-      '''
+  always {
+    echo "Pipeline finished"
+  }
+
+  failure {
+    script {
+      node {
+        sh """
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"❌ Pipeline failed: ${JOB_NAME} #${BUILD_NUMBER}"}' \
+          ${SLACK_WEBHOOK} || true
+        """
+      }
     }
   }
+}
 }
