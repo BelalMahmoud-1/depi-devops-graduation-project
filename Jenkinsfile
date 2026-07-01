@@ -19,9 +19,9 @@ pipeline {
             }
         }
 
-        stage('2 - Frontend Tests') {
+        stage('2 - rontend Tests') {
             steps {
-                dir('Frontend') {
+                dir('frontend') {
                     sh 'npm install'
                     sh 'npm test -- --watchAll=false'
                 }
@@ -30,7 +30,7 @@ pipeline {
 
         stage('3 - Backend Tests') {
             steps {
-                dir('Backend') {
+                dir('backend') {
                     sh 'npm install'
                     sh 'npm test'
                 }
@@ -39,13 +39,13 @@ pipeline {
 
         stage('4 - Build Frontend') {
             steps {
-                sh 'npm run build --prefix Frontend'
+                sh 'npm run build --prefix frontend'
             }
         }
 
         stage('5 - Build Backend') {
             steps {
-                sh 'npm run build --prefix Backend'
+                sh 'npm run build --prefix backend'
             }
         }
     }
