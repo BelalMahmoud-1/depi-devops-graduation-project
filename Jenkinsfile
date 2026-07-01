@@ -6,6 +6,7 @@ pipeline {
         AWS_ACCOUNT_ID = credentials('aws-account-id')
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${BUILD_ID}"
+        SLACK_WEBHOOK = credentials('slack-webhook')
     }
 
     stages {
@@ -54,12 +55,16 @@ pipeline {
         }
 
         failure {
-            // Using single quotes prevents Groovy parsing errors and reads directly from env
-            sh '''
-                curl -X POST -H 'Content-type: application/json' \
-                --data "{\\"text\\":\\"❌ Pipeline failed: ${JOB_NAME} #${BUILD_NUMBER}\\"}" \
-               
-            '''
+            script {
+                node {
+                    // Using single quotes allows us to safely pass $SLACK_WEBHOOK to the shell environment
+                    sh '''
+                        curl -X POST -H 'Content-type: application/json' \
+                        --data "{\\"text\\":\\"❌ Pipeline failed: ${JOB_NAME} #${BUILD_NUMBER}\\"}" \
+                        $SLACK_WEBHOOK || true
+                    '''
+                }
+            }
         }
     }
 }
