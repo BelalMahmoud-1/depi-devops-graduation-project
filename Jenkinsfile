@@ -1,22 +1,24 @@
 pipeline {
     agent any
+    
     tools {
         nodejs 'node-18'
     }
+    
     environment {
         AWS_REGION = 'us-east-1'
         AWS_ACCOUNT_ID = '608645726975'
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${BUILD_ID}"
-        
-        
     }
+    
     stages {
         stage('1 - Checkout') {
             steps {
                 checkout scm
             }
         }
+        
         stage('2 - Frontend Install & Tests') {
             steps {
                 dir('frontend') {
@@ -25,30 +27,33 @@ pipeline {
                 }
             }
         }
-stage('3 - Backend Install & Tests') {
-    steps {
-        dir('backend') {
-            sh '''
-                rm -rf node_modules package-lock.json
-
-                npm install --legacy-peer-deps --force --no-audit --no-fund
-
-                npm test -- --passWithNoTests
-            '''
-        }
-    }
-}
+        
+        stage('3 - Backend Install & Tests') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        rm -rf node_modules package-lock.json
+                        npm cache clean --force
+                        npm install --legacy-peer-deps --force
+                        npm test -- --passWithNoTests
+                    '''
+                }
+            }
+        } // <--- This closing brace was missing!
+        
         stage('4 - Build Frontend') {
             steps {
                 sh 'npm run build --prefix frontend'
             }
         }
+        
         stage('5 - Build Backend') {
             steps {
                 sh 'npm run build --prefix backend'
             }
         }
     }
+    
     post {
         success {
             echo "✅ Pipeline completed successfully!"
