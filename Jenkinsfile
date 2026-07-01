@@ -1,12 +1,13 @@
 pipeline {
     agent any
-      tools {
+
+    tools {
         nodejs 'node-18'
     }
 
     environment {
         AWS_REGION = 'us-east-1'
-        AWS_ACCOUNT_ID = credentials('aws-account-id')
+        AWS_ACCOUNT_ID = '608645726975'
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${BUILD_ID}"
     }
@@ -19,10 +20,10 @@ pipeline {
             }
         }
 
-        stage('2 - Frontend Tests') {
+        stage('2 - Frontend Install & Tests') {
             steps {
-                dir('Frontend') {
-                    sh 'npm install'
+                dir('frontend') {
+                    sh 'npm install --legacy-peer-deps'
                     sh 'npm test -- --watchAll=false --passWithNoTests'
                 }
             }
@@ -30,8 +31,8 @@ pipeline {
 
         stage('3 - Backend Tests') {
             steps {
-                dir('Backend') {
-                    sh 'npm install'
+                dir('backend') {
+                    sh 'npm install --legacy-peer-deps'
                     sh 'npm test -- --passWithNoTests'
                 }
             }
@@ -39,13 +40,13 @@ pipeline {
 
         stage('4 - Build Frontend') {
             steps {
-                sh 'npm run build --prefix Frontend'
+                sh 'npm run build --prefix frontend'
             }
         }
 
         stage('5 - Build Backend') {
             steps {
-                sh 'npm run build --prefix Backend'
+                sh 'npm run build --prefix backend'
             }
         }
     }
@@ -54,6 +55,7 @@ pipeline {
         success {
             echo "✅ Pipeline completed successfully!"
         }
+
         failure {
             echo "❌ Pipeline failed during execution."
         }
