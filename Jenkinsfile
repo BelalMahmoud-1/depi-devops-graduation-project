@@ -36,19 +36,17 @@ pipeline {
                 }
             }
         }
-    }   // ← كان ناقص
+    }
 
     post {
         success {
-            echo "✅ Pipeline completed successfully!"
+            echo '✅ Pipeline completed successfully!'
         }
         failure {
-            echo "❌ Pipeline failed during execution."
+            echo '❌ Pipeline failed during execution.'
         }
-    }
-}
-        failure {
-            echo "❌ Pipeline failed during execution."
+        always {
+            echo 'Pipeline execution finished.'
         }
     }
 }
