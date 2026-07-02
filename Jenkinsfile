@@ -44,15 +44,23 @@ pipeline {
                     sh '''
                         set -e
 
-                        if ! command -v sonar-scanner >/dev/null 2>&1; then
-                            SCANNER_VERSION=6.2.1.4610
-                            curl -sSLo sonar-scanner-cli.zip \
-                                "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip"
-                            unzip -qo sonar-scanner-cli.zip
-                            export PATH="$PWD/sonar-scanner-${SCANNER_VERSION}-linux-x64/bin:$PATH"
+                        SCANNER_VERSION=6.2.1.4610
+                        SCANNER_ZIP="sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip"
+                        SCANNER_DIR="sonar-scanner-${SCANNER_VERSION}-linux-x64"
+                        SCANNER_BIN="${PWD}/${SCANNER_DIR}/bin/sonar-scanner"
+
+                        if [ ! -x "${SCANNER_BIN}" ]; then
+                            if command -v curl >/dev/null 2>&1; then
+                                curl -sSLo "${SCANNER_ZIP}" \
+                                    "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/${SCANNER_ZIP}"
+                            else
+                                wget -q -O "${SCANNER_ZIP}" \
+                                    "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/${SCANNER_ZIP}"
+                            fi
+                            unzip -qo "${SCANNER_ZIP}"
                         fi
 
-                        sonar-scanner \
+                        "${SCANNER_BIN}" \
                           -Dsonar.projectKey=depi-devops-graduation-project \
                           -Dsonar.projectName=depi-devops-graduation-project \
                           -Dsonar.sources=frontend/src,backend \
