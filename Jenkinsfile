@@ -1,59 +1,54 @@
 pipeline {
     agent any
-    
-    tools {
+      tools {
         nodejs 'node-18'
     }
-    
+
     environment {
         AWS_REGION = 'us-east-1'
-        AWS_ACCOUNT_ID = '608645726975'
+        AWS_ACCOUNT_ID = credentials('aws-account-id')
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         IMAGE_TAG = "${BUILD_ID}"
     }
-    
+
     stages {
+
         stage('1 - Checkout') {
             steps {
                 checkout scm
             }
         }
-        
-        stage('2 - Frontend Install & Tests') {
+
+        stage('2 - Frontend Install&Tests') {
             steps {
-                dir('frontend') {
-                    sh 'npm install --legacy-peer-deps'
+                dir('Frontend') {
+                    sh 'npm install'
                     sh 'npm test -- --watchAll=false --passWithNoTests'
                 }
             }
         }
-        
-        stage('3 - Backend Install & Tests') {
+
+        stage('3 - Backend Install&Tests') {
             steps {
-                dir('backend') {
-                    sh '''
-                        rm -rf node_modules package-lock.json
-                        npm cache clean --force
-                        npm install --legacy-peer-deps --force
-                        npm test -- --passWithNoTests
-                    '''
+                dir('Backend') {
+                    sh 'npm install --legacy-peer-deps'
                 }
             }
-        } // <--- This closing brace was missing!
-        
-        stage('4 - Build Frontend') {
+        }
+
+        stage('3 - Build Frontend') {
             steps {
-                sh 'npm run build --prefix frontend'
+                sh 'npm run build --prefix Frontend'
             }
         }
-        
+
         stage('5 - Build Backend') {
             steps {
-                sh 'npm run build --prefix backend'
+                sh 'npm run build --prefix Backend'
             }
         }
     }
-    
+
     post {
         success {
             echo "✅ Pipeline completed successfully!"
