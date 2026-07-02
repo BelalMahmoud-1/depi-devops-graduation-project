@@ -41,32 +41,7 @@ pipeline {
         stage('4 - SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        set -e
-
-                        SCANNER_VERSION=6.2.1.4610
-                        SCANNER_ZIP="sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip"
-                        SCANNER_DIR="sonar-scanner-${SCANNER_VERSION}-linux-x64"
-                        SCANNER_BIN="${PWD}/${SCANNER_DIR}/bin/sonar-scanner"
-
-                        if [ ! -x "${SCANNER_BIN}" ]; then
-                            if command -v curl >/dev/null 2>&1; then
-                                curl -sSLo "${SCANNER_ZIP}" \
-                                    "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/${SCANNER_ZIP}"
-                            else
-                                wget -q -O "${SCANNER_ZIP}" \
-                                    "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/${SCANNER_ZIP}"
-                            fi
-                            unzip -qo "${SCANNER_ZIP}"
-                        fi
-
-                        "${SCANNER_BIN}" \
-                          -Dsonar.projectKey=depi-devops-graduation-project \
-                          -Dsonar.projectName=depi-devops-graduation-project \
-                          -Dsonar.sources=frontend/src,backend \
-                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/uploads/** \
-                          -Dsonar.sourceEncoding=UTF-8
-                    '''
+                    sh 'chmod +x scripts/sonar-scan.sh && scripts/sonar-scan.sh'
                 }
             }
         }
