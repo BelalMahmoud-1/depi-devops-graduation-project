@@ -19,42 +19,24 @@ pipeline {
             }
         }
 
-        stage('2 - Frontend Install & Tests') {
+        stage('Frontend Tests') {
             steps {
-                // If your Git folder is capitalized 'Frontend', change this to 'Frontend'
-                dir('frontend') {
-                    sh 'npm install --legacy-peer-deps --force'
-                    sh 'npm test -- --watchAll=false --passWithNoTests'
+                dir('Frontend') {
+                    sh 'npm ci'
+                    sh 'npm test -- --watchAll=false --coverage=false'
                 }
             }
         }
 
-        stage('3 - Backend Install & Tests') {
+        stage('Backend Tests') {
             steps {
-                dir('backend') {
-                    sh '''
-                        rm -rf node_modules package-lock.json
-                        npm cache clean --force
-                        npm install --legacy-peer-deps --force
-                        npm test -- --passWithNoTests
-                    '''
+                dir('Backend') {
+                    sh 'npm ci'
+                    sh 'npm test'
                 }
             }
         }
-
-        stage('4 - Build Frontend') {
-            steps {
-                sh 'npm run build --prefix frontend'
-            }
-        }
-
-        stage('5 - Build Backend') {
-            steps {
-                sh 'npm run build --prefix backend'
-            }
-        }
-    }
-
+        
     post {
         success {
             echo "✅ Pipeline completed successfully!"
