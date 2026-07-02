@@ -64,8 +64,3 @@ pipeline {
         }
     }
 }
-        failure {
-            echo "❌ Pipeline failed during execution."
-        }
-    }
-}
