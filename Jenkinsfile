@@ -1,6 +1,7 @@
 pipeline {
     agent any
-      tools {
+    
+    tools {
         nodejs 'node-18'
     }
 
@@ -12,23 +13,34 @@ pipeline {
     }
 
     stages {
-
         stage('1 - Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('2 - Frontend Install&Tests') {
-           steps {
+        stage('2 - Frontend Install & Tests') {
+            steps {
+                // If your Git folder is capitalized 'Frontend', change this to 'Frontend'
                 dir('frontend') {
-                    sh 'npm install --force'
+                    sh 'npm install --legacy-peer-deps --force'
                     sh 'npm test -- --watchAll=false --passWithNoTests'
                 }
             }
         }
 
-  
+        stage('3 - Backend Install & Tests') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        rm -rf node_modules package-lock.json
+                        npm cache clean --force
+                        npm install --legacy-peer-deps --force
+                        npm test -- --passWithNoTests
+                    '''
+                }
+            }
+        }
 
         stage('4 - Build Frontend') {
             steps {
@@ -47,6 +59,11 @@ pipeline {
         success {
             echo "✅ Pipeline completed successfully!"
         }
+        failure {
+            echo "❌ Pipeline failed during execution."
+        }
+    }
+}
         failure {
             echo "❌ Pipeline failed during execution."
         }
