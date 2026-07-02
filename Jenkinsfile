@@ -20,7 +20,7 @@ pipeline {
         }
 
         stage('2 - Frontend Install&Tests') {
-            steps {
+           steps {
                 dir('Frontend') {
                     sh 'npm install --force'
                     sh 'npm test -- --watchAll=false --passWithNoTests'
