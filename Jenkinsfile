@@ -22,7 +22,7 @@ pipeline {
         stage('2 - Frontend Install&Tests') {
             steps {
                 dir('Frontend') {
-                    sh 'npm install --legacy-peer-deps'
+                    sh 'npm install --force'
                     sh 'npm test -- --watchAll=false --passWithNoTests'
                 }
             }
@@ -31,7 +31,7 @@ pipeline {
         stage('3 - Backend Install&Tests') {
             steps {
                 dir('Backend') {
-                    sh 'npm install --legacy-peer-deps'
+                    sh 'npm install --force'
                 }
             }
         }
