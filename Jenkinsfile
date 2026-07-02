@@ -42,10 +42,21 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
+                        set -e
+
+                        if ! command -v sonar-scanner >/dev/null 2>&1; then
+                            SCANNER_VERSION=6.2.1.4610
+                            curl -sSLo sonar-scanner-cli.zip \
+                                "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip"
+                            unzip -qo sonar-scanner-cli.zip
+                            export PATH="$PWD/sonar-scanner-${SCANNER_VERSION}-linux-x64/bin:$PATH"
+                        fi
+
                         sonar-scanner \
                           -Dsonar.projectKey=depi-devops-graduation-project \
                           -Dsonar.projectName=depi-devops-graduation-project \
-                          -Dsonar.sources=. \
+                          -Dsonar.sources=frontend/src,backend \
+                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/uploads/** \
                           -Dsonar.sourceEncoding=UTF-8
                     '''
                 }
