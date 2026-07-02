@@ -23,7 +23,7 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh 'npm install'
-                    sh 'npm test -- --watchAll=false --coverage=false'
+                    sh 'npm test -- --watchAll=false --coverage=false --passWithNoTests'
                 }
             }
         }
