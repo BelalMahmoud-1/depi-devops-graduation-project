@@ -37,12 +37,24 @@ pipeline {
                 }
             }
         }
-
+stage('4 - SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('SonarQube') {
+            sh '''
+                ${tool 'SonarScanner'}/bin/sonar-scanner \
+                  -Dsonar.projectKey=depi-devops-graduation-project \
+                  -Dsonar.projectName=depi-devops-graduation-project \
+                  -Dsonar.sources=. \
+                  -Dsonar.sourceEncoding=UTF-8
+            '''
+        }
+    }
+}
         stage('4 - SonarQube Analysis') {
     steps {
         withSonarQubeEnv('SonarQube') {
             sh '''
-                sonar-scanner \
+                ${tool 'SonarScanner'}/bin/sonar-scanner \
                   -Dsonar.projectKey=depi-devops-graduation-project \
                   -Dsonar.projectName=depi-devops-graduation-project \
                   -Dsonar.sources=. \
