@@ -13,13 +13,14 @@ pipeline {
     }
 
     stages {
+
         stage('1 - Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Frontend Tests') {
+        stage('2 - Frontend Tests') {
             steps {
                 dir('frontend') {
                     sh 'npm install'
@@ -28,12 +29,39 @@ pipeline {
             }
         }
 
-        stage('Backend Tests') {
+        stage('3 - Backend Tests') {
             steps {
                 dir('backend') {
                     sh 'npm ci --legacy-peer-deps'
                     sh 'npm test'
                 }
+            }
+        }
+
+        stage('4 - SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.projectKey=depi-devops-graduation-project \
+                          -Dsonar.projectName=depi-devops-graduation-project \
+                          -Dsonar.sources=. \
+                          -Dsonar.sourceEncoding=UTF-8
+                    '''
+                }
+            }
+        }
+
+        stage('5 - OWASP Dependency Check') {
+            steps {
+                dependencyCheck(
+                    odcInstallation: 'Dependency-Check',
+                    additionalArguments: '--scan . --project "${JOB_NAME}" --format XML --format HTML'
+                )
+
+                dependencyCheckPublisher(
+                    pattern: '**/dependency-check-report.xml'
+                )
             }
         }
     }
@@ -42,10 +70,13 @@ pipeline {
         success {
             echo '✅ Pipeline completed successfully!'
         }
+
         failure {
             echo '❌ Pipeline failed during execution.'
         }
+
         always {
+            archiveArtifacts artifacts: '**/dependency-check-report.*', allowEmptyArchive: true
             echo 'Pipeline execution finished.'
         }
     }
