@@ -39,12 +39,18 @@ pipeline {
         }
 
         stage('4 - SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh 'chmod +x scripts/sonar-scan.sh && scripts/sonar-scan.sh'
-                }
-            }
+    steps {
+        withSonarQubeEnv('SonarQube') {
+            sh '''
+                sonar-scanner \
+                  -Dsonar.projectKey=depi-devops-graduation-project \
+                  -Dsonar.projectName=depi-devops-graduation-project \
+                  -Dsonar.sources=. \
+                  -Dsonar.sourceEncoding=UTF-8
+            '''
         }
+    }
+}
 
         stage('5 - OWASP Dependency Check') {
             steps {
