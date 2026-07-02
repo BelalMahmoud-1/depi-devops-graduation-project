@@ -28,13 +28,7 @@ pipeline {
             }
         }
 
-        stage('3 - Backend Install&Tests') {
-            steps {
-                dir('Backend') {
-                    sh 'npm install --force'
-                }
-            }
-        }
+  
 
         stage('4 - Build Frontend') {
             steps {
