@@ -22,7 +22,7 @@ pipeline {
         stage('Frontend Tests') {
             steps {
                 dir('frontend') {
-                    sh 'npm ci'
+                    sh 'npm install'
                     sh 'npm test -- --watchAll=false --coverage=false'
                 }
             }
@@ -31,7 +31,7 @@ pipeline {
         stage('Backend Tests') {
             steps {
                 dir('backend') {
-                    sh 'npm ci'
+                    sh 'npm ci --legacy-peer-deps'
                     sh 'npm test'
                 }
             }
