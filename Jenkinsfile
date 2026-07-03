@@ -80,7 +80,7 @@ pipeline {
                sh """
                 trivy image \
               --severity HIGH,CRITICAL \
-              --exit-code 0 \
+             --exit-code 0 \
               ${ECR_FRONTEND}:${IMAGE_TAG}
             """
            }
