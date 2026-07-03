@@ -6,6 +6,7 @@ pipeline {
     }
 
     environment {
+        SCANNER_HOME = tool 'SonarQubeScanner'
         AWS_REGION = 'us-east-1'
         AWS_ACCOUNT_ID = credentials('aws-account-id')
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
@@ -37,32 +38,19 @@ pipeline {
                 }
             }
         }
-stage('4 - SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('SonarQube') {
-            sh '''
-                ${tool 'SonarScanner'}/bin/sonar-scanner \
-                  -Dsonar.projectKey=depi-devops-graduation-project \
-                  -Dsonar.projectName=depi-devops-graduation-project \
-                  -Dsonar.sources=. \
-                  -Dsonar.sourceEncoding=UTF-8
-            '''
+
+        stage('SonarQube') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh """
+                        $SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=Amazona \
+                        -Dsonar.projectKey=depi-devops-graduation-project \
+                        -Dsonar.sources=frontend/src,backend
+                    """
+                }
+            }
         }
-    }
-}
-        stage('4 - SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('SonarQube') {
-            sh '''
-                ${tool 'SonarScanner'}/bin/sonar-scanner \
-                  -Dsonar.projectKey=depi-devops-graduation-project \
-                  -Dsonar.projectName=depi-devops-graduation-project \
-                  -Dsonar.sources=. \
-                  -Dsonar.sourceEncoding=UTF-8
-            '''
-        }
-    }
-}
 
         stage('5 - OWASP Dependency Check') {
             steps {
