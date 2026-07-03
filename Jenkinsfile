@@ -75,6 +75,29 @@ pipeline {
              }
         }
         
+        stage('Trivy Scan - Frontend') {
+           steps {
+               sh """
+                trivy image \
+              --severity HIGH,CRITICAL \
+              --exit-code 1 \
+              ${ECR_FRONTEND}:${IMAGE_TAG}
+            """
+           }
+      }
+  
+        stage('Trivy Scan - Backend') {
+           steps {
+              sh """
+                     trivy image \
+               --severity HIGH,CRITICAL \
+               --exit-code 1 \
+               ${ECR_BACKEND}:${IMAGE_TAG}
+               """
+              }
+            }
+        
+    
     }
 
     post {
