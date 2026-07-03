@@ -10,6 +10,8 @@ pipeline {
         AWS_REGION = 'us-east-1'
         AWS_ACCOUNT_ID = credentials('aws-account-id')
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_BACKEND = "${ECR_REGISTRY}/depi-devops-graduation-project-backend"
+        ECR_FRONTEND = "${ECR_REGISTRY}/depi-devops-graduation-project-frontend"
         IMAGE_TAG = "${BUILD_ID}"
     }
 
@@ -52,18 +54,27 @@ pipeline {
             }
         }
 
-        stage('5 - OWASP Dependency Check') {
-            steps {
-                dependencyCheck(
-                    odcInstallation: 'Dependency-Check',
-                    additionalArguments: '--scan . --project "${JOB_NAME}" --format XML --format HTML'
-                )
+        // stage('5 - OWASP Dependency Check') {
+        //     steps {
+        //         dependencyCheck(
+        //             odcInstallation: 'Dependency-Check',
+        //             additionalArguments: '--scan . --project "${JOB_NAME}" --format XML --format HTML'
+        //         )
 
-                dependencyCheckPublisher(
-                    pattern: '**/dependency-check-report.xml'
-                )
-            }
+        //         dependencyCheckPublisher(
+        //             pattern: '**/dependency-check-report.xml'
+        //         )
+        //     }
+        // }
+        stage('Build Images') {
+            steps {
+                      sh """
+                          docker build -t ${ECR_FRONTEND}:${IMAGE_TAG} ./frontend
+                          docker build -t ${ECR_BACKEND}:${IMAGE_TAG} ./backend
+                        """
+             }
         }
+        
     }
 
     post {
