@@ -12,7 +12,7 @@ pipeline {
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         ECR_BACKEND = "${ECR_REGISTRY}/depi-devops-graduation-project-backend"
         ECR_FRONTEND = "${ECR_REGISTRY}/depi-devops-graduation-project-frontend"
-        IMAGE_TAG = "${BUILD_ID}"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -108,11 +108,13 @@ pipeline {
                 )]) {
                     sh """
                         aws ecr get-login-password --region \$AWS_REGION | docker login --username AWS --password-stdin \$ECR_REGISTRY
-                        docker tag ${ECR_FRONTEND}:${IMAGE_TAG} ${ECR_FRONTEND}:latest
-                        docker tag ${ECR_BACKEND}:${IMAGE_TAG} ${ECR_BACKEND}:latest
-                        docker push ${ECR_FRONTEND}:${IMAGE_TAG}
-                        docker push ${ECR_BACKEND}:${IMAGE_TAG}
+
+                        docker push ${ECR_FRONTEND}:${BUILD_NUMBER}
+                        docker tag ${ECR_FRONTEND}:${BUILD_NUMBER} ${ECR_FRONTEND}:latest
                         docker push ${ECR_FRONTEND}:latest
+
+                        docker push ${ECR_BACKEND}:${BUILD_NUMBER}
+                        docker tag ${ECR_BACKEND}:${BUILD_NUMBER} ${ECR_BACKEND}:latest
                         docker push ${ECR_BACKEND}:latest
                     """
                 }
