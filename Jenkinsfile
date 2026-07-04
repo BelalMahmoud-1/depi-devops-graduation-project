@@ -10,8 +10,8 @@ pipeline {
         AWS_REGION = 'us-east-1'
         AWS_ACCOUNT_ID = credentials('aws-account-id')
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        ECR_BACKEND = "${ECR_REGISTRY}/depi-devops-graduation-project-backend"
-        ECR_FRONTEND = "${ECR_REGISTRY}/depi-devops-graduation-project-frontend"
+        ECR_BACKEND = "${ECR_REGISTRY}/amazona-backend"
+        ECR_FRONTEND = "${ECR_REGISTRY}/amazona-frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
