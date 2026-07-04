@@ -80,7 +80,7 @@ pipeline {
                sh """
                 trivy image \
               --severity HIGH,CRITICAL \
-              --exit-code 0 \
+              --exit-code 0 
               ${ECR_FRONTEND}:${IMAGE_TAG}
             """
            }
@@ -96,24 +96,21 @@ pipeline {
                """
               }
             }
-            
+
         stage('Push to ECR') {
             steps {
-                // 'aws-credentials' must match the ID of your AWS Global Credentials in Jenkins
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                  accessKeyVariable: 'AWS_ACCESS_KEY_ID', 
-                                  secretKeyVariable: 'AWS_SECRET_ACCESS_KEY', 
-                                  credentialsId: 'aws-credentials']]) {
-                    
-                    sh 'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com'
-                    sh "aws ecr create-repository --repository-name ${ECR_FRONTEND} || true"
-                    sh "aws ecr create-repository --repository-name ${ECR_BACKEND} || true"
-                    
-                    sh "docker tag ${ECR_FRONTEND}:${IMAGE_TAG} \$AWS_ACCOUNT_ID.dkr.ecr.\$AWS_REGION.amazonaws.com/${ECR_FRONTEND}:${IMAGE_TAG}"
-                    sh "docker tag ${ECR_BACKEND}:${IMAGE_TAG} \$AWS_ACCOUNT_ID.dkr.ecr.\$AWS_REGION.amazonaws.com/${ECR_BACKEND}:${IMAGE_TAG}"
-                    
-                    sh "docker push \$AWS_ACCOUNT_ID.dkr.ecr.\$AWS_REGION.amazonaws.com/${ECR_FRONTEND}:${IMAGE_TAG}"
-                    sh "docker push \$AWS_ACCOUNT_ID.dkr.ecr.\$AWS_REGION.amazonaws.com/${ECR_BACKEND}:${IMAGE_TAG}"
+                // Jenkins credential ID 'aws-credentials': type "Username with password"
+                // Username = AWS Access Key ID, Password = AWS Secret Access Key
+                withCredentials([usernamePassword(
+                    credentialsId: 'aws-credentials',
+                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    sh """
+                        aws ecr get-login-password --region \$AWS_REGION | docker login --username AWS --password-stdin \$ECR_REGISTRY
+                        docker push ${ECR_FRONTEND}:${IMAGE_TAG}
+                        docker push ${ECR_BACKEND}:${IMAGE_TAG}
+                    """
                 }
             }
         }
