@@ -114,7 +114,26 @@ pipeline {
                 }
             }
         }
+        stage('Deploy to EKS') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'aws-credentials',
+            usernameVariable: 'AWS_ACCESS_KEY_ID',
+            passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+        )]) {
+            sh """
+                aws eks update-kubeconfig \
+                  --region $AWS_REGION \
+                  --name amazona-dev-cluster
+
+                kubectl rollout restart deployment/backend
+                kubectl rollout restart deployment/frontend
+            """
+        }
     }
+}
+    }
+     
 
     post {
         success {
