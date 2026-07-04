@@ -103,7 +103,7 @@ function App() {
         </main>
 
         {/* ---------------- Footer ---------------- */}
-        <footer className="footer">All right reserved.</footer>
+        <footer className="footer">All right aready reserved.</footer>
       </div>
     </BrowserRouter>
   );
