@@ -54,73 +54,66 @@ pipeline {
             }
         }
 
-        // stage('5 - OWASP Dependency Check') {
-        //     steps {
-        //         dependencyCheck(
-        //             odcInstallation: 'Dependency-Check',
-        //             additionalArguments: '--scan . --project "${JOB_NAME}" --format XML --format HTML'
-        //         )
-
-        //         dependencyCheckPublisher(
-        //             pattern: '**/dependency-check-report.xml'
-        //         )
-        //     }
-        // }
         stage('Build Images') {
             steps {
-                      sh """
-                          docker build -t ${ECR_FRONTEND}:${IMAGE_TAG} ./frontend
-                          docker build -t ${ECR_BACKEND}:${IMAGE_TAG} ./backend
-                        """
+                sh """
+                    docker build -t ${ECR_FRONTEND}:${IMAGE_TAG} ./frontend
+                    docker build -t ${ECR_BACKEND}:${IMAGE_TAG} ./backend
+                """
              }
         }
         
         stage('Trivy Scan - Frontend') {
             steps {
-                sh '''
+                sh """
                     trivy image \
                       --severity HIGH,CRITICAL \
                       --exit-code 0 \
-                      "${ECR_FRONTEND}:${IMAGE_TAG}"
-                '''
+                      ${ECR_FRONTEND}:${IMAGE_TAG}
+                """
             }
         }
 
         stage('Trivy Scan - Backend') {
             steps {
-                sh '''
+                sh """
                     trivy image \
                       --severity HIGH,CRITICAL \
                       --exit-code 0 \
-                      "${ECR_BACKEND}:${IMAGE_TAG}"
-                '''
+                      ${ECR_BACKEND}:${IMAGE_TAG}
+                """
             }
         }
 
         stage('Push to ECR') {
-            steps {
-                // Jenkins credential ID 'aws-credentials': type "Username with password"
-                // Username = AWS Access Key ID, Password = AWS Secret Access Key
-                withCredentials([usernamePassword(
-                    credentialsId: 'aws-credentials',
-                    usernameVariable: 'AWS_ACCESS_KEY_ID',
-                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
-                )]) {
+           steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'aws-credentials',
+                        usernameVariable: 'AWS_ACCESS_KEY_ID',
+                        passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                    )
+                ]) {
                     sh """
-                        aws ecr get-login-password --region \$AWS_REGION | docker login --username AWS --password-stdin \$ECR_REGISTRY
+                        # Login to ECR
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-                        docker push ${ECR_FRONTEND}:${BUILD_NUMBER}
-                        docker tag ${ECR_FRONTEND}:${BUILD_NUMBER} ${ECR_FRONTEND}:latest
+                        # Tag 'latest' from the already built image
+                        docker tag ${ECR_FRONTEND}:${IMAGE_TAG} ${ECR_FRONTEND}:latest
+                        docker tag ${ECR_BACKEND}:${IMAGE_TAG} ${ECR_BACKEND}:latest
+
+                        # Push Frontend
+                        docker push ${ECR_FRONTEND}:${IMAGE_TAG}
                         docker push ${ECR_FRONTEND}:latest
 
-                        docker push ${ECR_BACKEND}:${BUILD_NUMBER}
-                        docker tag ${ECR_BACKEND}:${BUILD_NUMBER} ${ECR_BACKEND}:latest
+                        # Push Backend
+                        docker push ${ECR_BACKEND}:${IMAGE_TAG}
                         docker push ${ECR_BACKEND}:latest
                     """
                 }
             }
         }
-    
     }
 
     post {
