@@ -121,14 +121,16 @@ pipeline {
             usernameVariable: 'AWS_ACCESS_KEY_ID',
             passwordVariable: 'AWS_SECRET_ACCESS_KEY'
         )]) {
-            sh """
+            sh '''
+                export KUBECONFIG=$HOME/.kube/config
+
                 aws eks update-kubeconfig \
-                  --region $AWS_REGION \
+                  --region us-east-1 \
                   --name amazona-dev-cluster
 
                 kubectl rollout restart deployment/backend
                 kubectl rollout restart deployment/frontend
-            """
+            '''
         }
     }
 }
