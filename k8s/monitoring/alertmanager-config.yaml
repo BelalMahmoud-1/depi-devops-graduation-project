@@ -1,0 +1,53 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: amazona-alerts
+  namespace: monitoring
+  labels:
+    alertmanagerConfig: amazona
+spec:
+  route:
+    groupBy: ['alertname', 'severity']
+    groupWait: 10s
+    groupInterval: 10s
+    repeatInterval: 1h
+    receiver: 'slack'
+    routes:
+      - matchers:
+          - name: severity
+            value: critical
+        receiver: 'slack-critical'
+      - matchers:
+          - name: severity
+            value: warning
+        receiver: 'slack-warnings'
+  receivers:
+    - name: 'slack'
+      slackConfigs:
+        - apiURL:
+            key: slack-webhook-url
+            name: alertmanager-slack-secret
+          channel: '#amazona-alerts'
+          title: 'Amazona Alert: {{ .GroupLabels.alertname }}'
+          text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+          sendResolved: true
+    - name: 'slack-critical'
+      slackConfigs:
+        - apiURL:
+            key: slack-webhook-url
+            name: alertmanager-slack-secret
+          channel: '#amazona-alerts'
+          title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+          text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+          color: 'danger'
+          sendResolved: true
+    - name: 'slack-warnings'
+      slackConfigs:
+        - apiURL:
+            key: slack-webhook-url
+            name: alertmanager-slack-secret
+          channel: '#amazona-alerts'
+          title: 'WARNING: {{ .GroupLabels.alertname }}'
+          text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+          color: 'warning'
+          sendResolved: true
