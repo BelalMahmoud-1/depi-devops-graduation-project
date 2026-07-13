@@ -1,0 +1,38 @@
+grafana:
+  replicas: 1
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    replicas: 1
+
+prometheus:
+  prometheusSpec:
+    replicas: 1
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: false
+
+defaultRules:
+  create: true
+
+kubeApiServer:
+  enabled: false
+
+kubeControllerManager:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeEtcd:
+  enabled: false
+
+coreDns:
+  enabled: false
+
+kubeProxy:
+  enabled: false

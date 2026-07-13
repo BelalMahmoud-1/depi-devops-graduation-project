@@ -1,0 +1,137 @@
+grafana:
+  enabled: true
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+prometheusOperator:
+  enabled: true
+
+  admissionWebhooks:
+    enabled: false
+
+  tls:
+    enabled: false
+
+kubeApiServer:
+  enabled: true
+
+kubelet:
+  enabled: true
+
+coreDns:
+  enabled: false
+
+kubeDns:
+  enabled: false
+
+kubeControllerManager:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  create: true
+
+kube-state-metrics:
+  enabled: true
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+prometheus-node-exporter:
+  enabled: true
+
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+
+alertmanager:
+  enabled: true
+
+  config:
+    global:
+      resolve_timeout: 1m
+
+    route:
+      receiver: slack
+      group_by:
+        - alertname
+        - severity
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+
+      routes:
+        - receiver: slack-critical
+          matchers:
+            - severity="critical"
+
+        - receiver: slack-warnings
+          matchers:
+            - severity="warning"
+
+    receivers:
+      - name: slack
+        slack_configs:
+          - api_url_file: /etc/alertmanager/secrets/alertmanager-slack-secret/slack-webhook-url
+            channel: "#amazona-alerts"
+            title: "Amazona Alert: {{ .GroupLabels.alertname }}"
+            text: "{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+            send_resolved: true
+
+      - name: slack-critical
+        slack_configs:
+          - api_url_file: /etc/alertmanager/secrets/alertmanager-slack-secret/slack-webhook-url
+            channel: "#amazona-alerts"
+            title: "CRITICAL: {{ .GroupLabels.alertname }}"
+            text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
+            color: danger
+            send_resolved: true
+
+      - name: slack-warnings
+        slack_configs:
+          - api_url_file: /etc/alertmanager/secrets/alertmanager-slack-secret/slack-webhook-url
+            channel: "#amazona-alerts"
+            title: "WARNING: {{ .GroupLabels.alertname }}"
+            text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
+            color: warning
+            send_resolved: true
+
+  alertmanagerSpec:
+    secrets:
+      - alertmanager-slack-secret
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+prometheus:
+  enabled: true
+
+  prometheusSpec:
+    retention: 7d
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 300Mi
+      limits:
+        cpu: 500m
+        memory: 700Mi

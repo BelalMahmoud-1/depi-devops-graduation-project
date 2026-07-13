@@ -27,7 +27,7 @@ variable "eks_cluster_version" {
 }
 
 variable "eks_node_instance_types" {
-  default = ["t3.small"]
+  default = ["t3.medium"]
 }
 
 variable "eks_node_desired_size" {
