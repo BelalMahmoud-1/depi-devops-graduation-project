@@ -29,7 +29,7 @@ docker push $ECR_URL/amazona-frontend:latest
 echo ""
 echo "=== 4. Create K8s secrets ==="
 kubectl create secret generic backend-secrets \
-  --from-literal=MONGODB_URL="mongodb://mongo-0.mongo-headless:27017,mongo-1.mongo-headless:27017,mongo-2.mongo-headless:27017/amazona?replicaSet=rs0" \
+  --from-literal=MONGODB_URL="mongodb://mongo-0.mongo-headless.default.svc.cluster.local:27017,mongo-1.mongo-headless.default.svc.cluster.local:27017,mongo-2.mongo-headless.default.svc.cluster.local:27017/amazona?replicaSet=rs0" \
   --from-literal=JWT_SECRET="amazona-super-secret-jwt-key-2024" \
   --dry-run=client -o yaml | kubectl apply -f -
 
@@ -55,9 +55,9 @@ try {
   rs.initiate({
     _id: 'rs0',
     members: [
-      { _id: 0, host: 'mongo-0.mongo-headless:27017' },
-      { _id: 1, host: 'mongo-1.mongo-headless:27017' },
-      { _id: 2, host: 'mongo-2.mongo-headless:27017' }
+      { _id: 0, host: 'mongo-0.mongo-headless.default.svc.cluster.local:27017' },
+      { _id: 1, host: 'mongo-1.mongo-headless.default.svc.cluster.local:27017' },
+      { _id: 2, host: 'mongo-2.mongo-headless.default.svc.cluster.local:27017' }
     ]
   });
 } catch(e) {
