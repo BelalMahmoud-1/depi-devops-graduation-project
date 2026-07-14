@@ -95,7 +95,7 @@ The application runs on **Amazon EKS** with the following topology:
 
 The pipeline is defined in `Jenkinsfile` and triggers on GitHub push via webhook.
 
-![CI/CD Pipeline Architecture](/home/bola-hosny/Desktop/depi-devops-graduation-project-dev/Documentation/diagrams/CICD-Architecture.jpg)
+![CI/CD Pipeline Architecture](Documentation/diagrams/CICD.png)
 *Figure 4: CI/CD Pipeline Flow*
 
 1. **Checkout** — Pull latest code from GitHub.
