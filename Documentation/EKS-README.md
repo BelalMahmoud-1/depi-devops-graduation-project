@@ -37,7 +37,7 @@ User → AWS ALB → Ingress → Frontend (React) + Backend (Node.js) → MongoD
 
 ## 🏗️ Architecture
 
-![K8s Cluster Architecture — Amazona](./K8s-diagram.png)
+![Architecture Diagram](Documentation/diagrams/architecture-diagram.png)
 
 ```
 ┌────────────────────────────────────────────────────┐
