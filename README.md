@@ -1,413 +1,139 @@
-# 🛒 Amazona — DevOps Graduation Project
+# DEPI DevOps Graduation Project — Amazona E-Commerce Platform
 
-<div align="center">
+![Overall Project Architecture](Documentation/diagrams/final%20diagram.png)
 
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
-![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+## 📖 Executive Summary
 
-**Full-stack e-commerce application deployed on AWS EKS using modern DevOps practices.**
+**Amazona** is a cloud-native, full-stack e-commerce web application built using the highly popular MERN stack (MongoDB, Express, React, Node.js). This repository is not just about the application source code; it serves as a comprehensive showcase of modern DevOps methodologies, Infrastructure as Code (IaC), Continuous Integration/Continuous Deployment (CI/CD), and Cloud-Native orchestration.
 
-</div>
+The project demonstrates a fully automated, highly available, and deeply secure infrastructure deployed on **Amazon Web Services (AWS)** using **Terraform**. The application is orchestrated via **Kubernetes (Amazon EKS)**, continuously integrated, tested, and deployed via a declarative **Jenkins** pipeline, and robustly monitored using **Prometheus, Grafana, and Alertmanager**.
+
+This documentation serves as the ultimate guide to understanding the architecture, design decisions, and operational lifecycle of the Amazona platform.
 
 ---
 
-## 📋 Table of Contents
+## 1. 💻 Application Architecture (Source Code)
 
-- [Overview](#-overview)
-- [Architecture](#-architecture)
-- [Technology Stack](#-technology-stack)
-- [Project Structure](#-project-structure)
-- [Quick Start](#-quick-start)
-- [Infrastructure (Terraform)](#-infrastructure-terraform)
-- [Kubernetes Manifests](#-kubernetes-manifests)
-- [Docker & Local Development](#-docker--local-development)
-- [Deployment](#-deployment)
-- [Teardown](#-teardown)
 
----
+Amazona features a dynamic customer-facing storefront and a secure administrative management panel. The application is divided into deeply decoupled microservice-like tiers.
 
-## 🌟 Overview
+### Technical Stack:
+- **Frontend (Presentation Tier):** Built with React.js, utilizing Redux for global state management and React Router for client-side routing. It is built as a static artifact and served by a lightweight Nginx web server within its Docker container.
+- **Backend (Application Tier):** A robust RESTful API built on Node.js and Express.js. It handles business logic, JWT (JSON Web Token) authentication, file uploads via Multer, and seamless integration with the PayPal API for checkout.
+- **Database (Data Tier):** MongoDB serves as the NoSQL database, structured using Mongoose ODM for data modeling and strict schema validation.
 
-Amazona is a full-stack e-commerce platform built with a **3-tier architecture** and deployed on **AWS EKS** using Infrastructure as Code (Terraform), containerization (Docker), and container orchestration (Kubernetes).
-
-| Component | Technology | Replicas |
-|-----------|-----------|---------|
-| Frontend | React.js + Nginx | 2 pods |
-| Backend | Node.js + Express | 2 pods |
-| Database | MongoDB Replica Set | 3 pods |
+### Key Features:
+- **For Customers:** Persistent shopping carts, secure login/registration, product filtering, multi-step checkout, and order history tracking.
+- **For Administrators:** Full CRUD operations for products, order management dashboards, and image upload capabilities.
 
 ---
 
-## 🏗️ Architecture
+## 2. 🏗️ Infrastructure as Code (Terraform)
 
-```
-                         ┌─────────────────────────────────────────────┐
-                         │           AWS EKS Cluster                   │
-                         │  ┌──────────────────────────────────────┐   │
-User ──► AWS ALB ──► Ingress│  Frontend Deployment (2 replicas)    │   │
-                         │  │  ┌──────────┐  ┌──────────┐         │   │
-         /* ────────────►│  │  │ React pod│  │ React pod│         │   │
-         /api/* ─────────┼──┼─►│          │  │          │         │   │
-                         │  │  └──────────┘  └──────────┘         │   │
-                         │  │                    ▲                 │   │
-                         │  │             Frontend svc             │   │
-                         │  └──────────────────────────────────────┘   │
-                         │                                             │
-                         │  ┌──────────────────────────────────────┐   │
-                         │  │  Backend Deployment (2 replicas)     │   │
-                         │  │  ┌──────────┐  ┌──────────┐         │   │
-                         │  │  │Node.js   │  │Node.js   │         │   │
-                         │  │  │ pod      │  │ pod      │         │   │
-                         │  │  └──────────┘  └──────────┘         │   │
-                         │  │                    ▲                 │   │
-                         │  │             Backend svc              │   │
-                         │  └──────────────────────────────────────┘   │
-                         │                    │                        │
-                         │  ┌─────────────────▼────────────────────┐   │
-                         │  │  MongoDB StatefulSet (3 replicas)    │   │
-                         │  │  ┌────────┐ ┌────────┐ ┌────────┐   │   │
-                         │  │  │mongo-0 │ │mongo-1 │ │mongo-2 │   │   │
-                         │  │  │PRIMARY │ │SECONDRY│ │SECONDRY│   │   │
-                         │  │  └───┬────┘ └───┬────┘ └───┬────┘   │   │
-                         │  │      │           │          │        │   │
-                         │  │    PVC         PVC        PVC       │   │
-                         │  │      │           │          │        │   │
-                         │  │   EBS gp2    EBS gp2   EBS gp2     │   │
-                         │  └──────────────────────────────────────┘   │
-                         └─────────────────────────────────────────────┘
-                                         │
-                    ┌────────────────────┼───────────────────┐
-                    │                    │                   │
-                 AWS ECR            AWS EBS           S3 (TF State)
-            (Docker Images)      (Persistent)      (Remote Backend)
-```
+![Terraform Architecture](Documentation/diagrams/terraform.png)
+
+The foundational AWS infrastructure is provisioned securely, consistently, and predictably using **Terraform**. We adopted a highly modular approach, ensuring maximum reusability and adherence to the AWS Well-Architected Framework.
+
+### Key Infrastructure Modules:
+- **Networking (VPC Module):** 
+  - Provisions an isolated Virtual Private Cloud (VPC) with a `10.0.0.0/16` CIDR block.
+  - Distributes Public Subnets across multiple Availability Zones (AZs) to guarantee High Availability (HA) and fault tolerance.
+  - **Design Decision:** Subnets are strictly tagged with `kubernetes.io/role/elb = 1`. This is a crucial requirement that allows the Kubernetes AWS Load Balancer Controller to dynamically discover subnets and provision Application Load Balancers (ALBs) into them.
+- **Container Registry (ECR Module):** 
+  - Provisions private Amazon Elastic Container Registries (ECR) for the `frontend` and `backend` images. 
+  - **Security Decision:** `scan_on_push` is explicitly enabled. This integrates AWS native vulnerability scanning, ensuring every pushed Docker image is instantly assessed for CVEs (Common Vulnerabilities and Exposures).
+- **Compute (EKS Module):** 
+  - Provisions the EKS Control Plane and an On-Demand Worker Node Group (using `t3.medium` instances to accommodate both application and heavy monitoring workloads).
+- **Security & IAM (OIDC & IRSA):** 
+  - **Zero Trust Security:** Instead of granting broad, risky AWS permissions directly to the EC2 worker nodes, we utilize **IAM Roles for Service Accounts (IRSA)** integrated with an EKS OIDC (OpenID Connect) provider. 
+  - This allows specific Kubernetes pods (like the ALB Controller and the EBS CSI Driver) to securely assume specific AWS IAM roles, enforcing the Principle of Least Privilege.
 
 ---
 
-## 🛠️ Technology Stack
+## 3. 🔄 CI/CD Pipeline (Jenkins & Docker)
 
-| Category | Tool | Purpose |
-|----------|------|---------|
-| **Containerization** | Docker | Package application into containers |
-| **Local Dev** | docker-compose | Run full stack locally |
-| **IaC** | Terraform | Provision AWS infrastructure |
-| **Cloud** | AWS EKS | Managed Kubernetes cluster |
-| **Registry** | AWS ECR | Store Docker images |
-| **Storage** | AWS EBS (gp2) | Persistent MongoDB storage |
-| **Networking** | AWS ALB | Internet-facing load balancer |
-| **Orchestration** | Kubernetes | Deploy and manage containers |
-| **State Backend** | AWS S3 | Remote Terraform state storage |
-| **Service Mesh** | Helm | Install ALB & EBS controllers |
-| **Security** | IRSA + OIDC | Fine-grained IAM for K8s pods |
+![CI/CD Pipeline Architecture](Documentation/diagrams/CICD%20Archtecture.jpg)
 
----
+The Continuous Integration and Continuous Deployment (CI/CD) pipeline is the heartbeat of our DevOps lifecycle. It is defined declaratively (`Jenkinsfile`) and triggers automatically on every GitHub push via Webhooks.
 
-## 📁 Project Structure
-
-```
-depi-devops-graduation-project/
-│
-├── 📄 docker-compose.yml          # Local development stack
-├── 📄 .env.example                # Environment variables template
-├── 📄 deploy.sh                   # Automated deployment script
-├── 📄 README.md                   # This file
-│
-├── 🐳 backend/                    # Node.js API Server
-│   ├── Dockerfile                 # Multi-stage production build
-│   ├── package.json
-│   ├── package-lock.json          # Locked dependencies
-│   └── src/
-│
-├── 🐳 frontend/                   # React.js Application
-│   ├── Dockerfile                 # Multi-stage build + Nginx
-│   ├── nginx.conf                 # Nginx configuration
-│   ├── package.json
-│   ├── package-lock.json          # Locked dependencies
-│   └── src/
-│
-├── ☸️  k8s/                       # Kubernetes Manifests
-│   ├── backend-deployment.yaml    # Backend Deployment (2 replicas)
-│   ├── backend-service.yaml       # Backend ClusterIP Service
-│   ├── frontend-deployment.yaml   # Frontend Deployment (2 replicas)
-│   ├── frontend-service.yaml      # Frontend ClusterIP Service
-│   ├── mongo-statefulset.yaml     # MongoDB StatefulSet (3 replicas)
-│   ├── mongo-service.yaml         # MongoDB Headless + ClusterIP Services
-│   ├── ingress.yaml               # ALB Ingress (/* → frontend, /api/* → backend)
-│   ├── secrets.yaml               # Kubernetes Secrets template
-│   └── hpa.yaml                   # Horizontal Pod Autoscaler
-│
-└── 🏗️  terraform/                 # Infrastructure as Code
-    ├── main.tf                    # Root module + Helm ALB Controller
-    ├── variables.tf               # Input variables
-    ├── outputs.tf                 # Output values
-    ├── backend.tf                 # S3 Remote State Backend
-    ├── .gitignore                 # Ignore state files
-    │
-    └── modules/
-        ├── vpc/                   # VPC + Subnets + IGW
-        │   ├── main.tf
-        │   ├── variables.tf
-        │   └── outputs.tf
-        │
-        ├── eks/                   # EKS Cluster + Nodes + IRSA
-        │   ├── main.tf            # Cluster, NodeGroup, OIDC, IRSA, EBS CSI
-        │   ├── variables.tf
-        │   ├── outputs.tf
-        │   └── alb-policy.json    # ALB Controller IAM Policy
-        │
-        └── ecr/                   # ECR Repositories
-            ├── main.tf
-            ├── variables.tf
-            └── outputs.tf
-```
+### Detailed Pipeline Stages:
+1. **Parallel Testing:** Executes frontend (React/Jest) and backend (Node.js/Jest) unit tests simultaneously to drastically reduce pipeline execution time.
+2. **Static Application Security Testing (SAST):** 
+   - **SonarQube Analysis:** Scans the source code to detect bugs, vulnerabilities, code smells, and technical debt. It acts as a strict quality gate.
+3. **Software Composition Analysis (SCA):**
+   - **OWASP Dependency Check:** Scans `package.json` dependencies for known vulnerabilities listed in the National Vulnerability Database (NVD).
+4. **Multi-Stage Docker Builds:** Compiles optimized, production-ready Docker images. For the frontend, it builds the React app and copies only the static artifacts into a lightweight Nginx image.
+5. **Container Security Scanning:** 
+   - **Trivy Scan:** Scans the newly built Docker images for HIGH and CRITICAL vulnerabilities before they are ever pushed to a registry.
+6. **Artifact Storage:** Authenticates and pushes versioned (`:BUILD_NUMBER`) and `:latest` images to AWS ECR.
+7. **Continuous Deployment (EKS):** 
+   - Triggers a zero-downtime rolling update (`kubectl rollout restart`) on the Kubernetes deployments. Kubernetes intelligently spins up new pods, waits for them to pass Readiness Probes, and gracefully terminates the old ones.
+8. **Real-time Alerting:** Integrates with Slack to send instant success/failure notifications to the DevOps team, ensuring rapid feedback loops.
 
 ---
 
-## ⚡ Quick Start
+## 4. ☸️ Kubernetes Orchestration (AWS EKS)
+
+
+The application runs inside Amazon EKS with a robust, highly-available, and self-healing topology.
+
+### Workload Topology:
+- **Frontend & Backend Deployments:** Running 2 replicas each, ensuring no single point of failure. Exposed internally via Kubernetes `ClusterIP` services.
+- **Database (MongoDB StatefulSet):** 
+  - Runs a 3-replica MongoDB Replica Set (1 Primary, 2 Secondaries). 
+  - **Design Decision:** We deliberately chose a **StatefulSet** over a Deployment because databases require stable network identifiers (`mongo-0`, `mongo-1`) and persistent storage.
+  - Using the AWS EBS CSI Driver, Kubernetes dynamically provisions persistent `gp2` block storage volumes so data survives pod restarts.
+- **Ingress / Load Balancing:** 
+  - Managed by the AWS Application Load Balancer (ALB) Controller. It intelligently routes internet traffic based on paths (`/*` routes to the React frontend, `/api/*` routes to the Node.js backend).
+- **Horizontal Pod Autoscaler (HPA):** 
+  - Actively monitors CPU utilization. If traffic spikes and CPU exceeds 70%, HPA automatically scales the pods out (up to 5 replicas) to handle the load, scaling back in when traffic subsides.
+
+---
+
+## 5. 📊 Observability (Monitoring & Alerts)
+
+
+A comprehensive observability stack runs directly inside the EKS cluster within a dedicated `monitoring` namespace, providing deep insights into cluster and application health.
+
+### The Monitoring Stack:
+- **Prometheus (Time-Series Database):** Scrapes metrics from nodes, pods, and cluster resources every 15 seconds. It utilizes `kube-state-metrics` to translate Kubernetes object states into readable metrics.
+- **Grafana (Visualization):** Connects directly to Prometheus. We deployed custom dashboards for Cluster CPU/Memory tracking, Namespace resource quotas, Node health, and Persistent Volume capacity. 
+  - **Design Decision:** Grafana is exposed securely via the *existing* ALB Ingress controller rather than creating a new Classic Load Balancer. This saves costs and simplifies infrastructure teardown.
+- **Alertmanager & Slack:** Integrated with Prometheus alerting rules. If the cluster experiences anomalies, it fires critical alerts directly to our Slack channel. 
+  - *Example Alerts:* `PodCrashLooping` (Critical), `HighMemoryUsage` (> 80%), `NodeNotReady` (Critical).
+
+---
+
+## 🚀 Local Development Setup
+
+To run the application locally without Kubernetes or AWS:
 
 ### Prerequisites
+- Node.js (v18+)
+- Local MongoDB instance running
 
-```bash
-# Required tools
-aws --version        # AWS CLI configured
-terraform --version  # >= 1.5
-kubectl version      # Kubernetes CLI
-helm version         # Helm >= 3
-docker --version     # Docker
-```
-
-### Run Locally (docker-compose)
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/BelalMahmoud-1/depi-devops-graduation-project.git
-cd depi-devops-graduation-project
-
-# 2. Setup environment
-cp .env.example .env
-
-# 3. Build & run
-docker-compose build
-docker-compose up -d
-
-# 4. Access
-open http://localhost:3000        # Frontend
-curl http://localhost:5000/api/health  # Backend API
-
-# 5. Stop
-docker-compose down
-```
+### Steps
+1. Clone the repository.
+2. In the `backend` folder, create a `.env` file with `MONGODB_URL=mongodb://localhost:27017/amazona` and `JWT_SECRET=your_secret`.
+3. Run `npm install` in both `frontend` and `backend` directories.
+4. Run `npm run seed` inside the backend to populate mock data.
+5. Run `npm start` in the `backend` directory.
+6. Run `npm start` in the `frontend` directory. The app will be available at `http://localhost:3000`.
 
 ---
 
-## 🏗️ Infrastructure (Terraform)
+## 👥 Meet The Team
 
-### What Terraform Creates
+This project was developed by a dedicated team of DevOps Engineers as part of the **DEPI DevOps Graduation Project**.
 
-| Resource | Details |
-|----------|---------|
-| **VPC** | 10.0.0.0/16 with 2 public subnets |
-| **Subnets** | us-east-1a + us-east-1b |
-| **Internet Gateway** | Public internet access |
-| **EKS Cluster** | Kubernetes 1.31, public endpoint |
-| **Node Group** | 2x t3.small EC2 instances |
-| **ECR Repos** | amazona-backend + amazona-frontend |
-| **IAM Roles** | Cluster role + Node role + IRSA roles |
-| **OIDC Provider** | Enables IRSA |
-| **EBS CSI Driver** | Auto-provision EBS volumes |
-| **ALB Controller** | Manages AWS Load Balancers via Helm |
-| **S3 Backend** | Remote state storage |
+| Name | Role / Focus Area | Contact |
+|------|-------------------|---------|
+| **Belal Mahmoud** | Cloud Infrastructure & DevOps | [belal1652005@gmail.com](mailto:belal1652005@gmail.com) |
+| **Yousef Waguih Hosny** | Kubernetes & Automation | [yousefwaguih@gmail.com](mailto:yousefwaguih@gmail.com) |
+| **Moustafa Sakr** | CI/CD Pipelines & Security | [moustafa52@gmail.com](mailto:moustafa52@gmail.com.github.com) |
+| **Muhammad Abdelkader** | Architecture & Monitoring | [moha7med.abdelkader@gmail.com](mailto:moha7med.abdelkader@gmail.com) |
 
-### Terraform Commands
-
-```bash
-cd terraform
-
-# Initialize
-terraform init
-
-# Preview changes
-terraform plan
-
-# Apply (15-20 minutes)
-terraform apply -auto-approve
-
-# Destroy
-terraform destroy -auto-approve
-```
-
-### Terraform Outputs
-
-```bash
-terraform output
-# eks_cluster_name        = "amazona-dev-cluster"
-# eks_cluster_endpoint    = "https://..."
-# backend_ecr_url         = "608645726975.dkr.ecr.us-east-1.amazonaws.com/amazona-backend"
-# frontend_ecr_url        = "608645726975.dkr.ecr.us-east-1.amazonaws.com/amazona-frontend"
-# vpc_id                  = "vpc-..."
-```
+> *Note: Roles are illustrative of the collaborative effort in delivering this end-to-end DevOps pipeline.*
 
 ---
-
-## ☸️ Kubernetes Manifests
-
-### K8s Resources Overview
-
-```bash
-# Apply all manifests
-kubectl apply -f k8s/
-
-# Check everything
-kubectl get pods,svc,ingress,pvc
-```
-
-### Key Design Decisions
-
-**MongoDB StatefulSet** — Uses StatefulSet instead of Deployment because:
-- Each pod needs a stable DNS name (`mongo-0.mongo-headless:27017`)
-- Each pod needs persistent storage that survives restarts
-- Pods start in order: `mongo-0` → `mongo-1` → `mongo-2`
-
-**MongoDB Replica Set** — 3 nodes for high availability:
-- `mongo-0`: PRIMARY (handles reads & writes)
-- `mongo-1`: SECONDARY (hot standby)
-- `mongo-2`: SECONDARY (hot standby)
-
-**IRSA (IAM Roles for Service Accounts)** — Fine-grained permissions:
-- ALB Controller → only permission to manage Load Balancers
-- EBS CSI Driver → only permission to manage EBS volumes
-
----
-
-## 🐳 Docker & Local Development
-
-### Backend Dockerfile — Multi-Stage Build
-
-```
-Stage 1 (builder):  Install ALL deps → Compile ES6+ with Babel
-Stage 2 (production): Copy compiled code → Install PROD deps only
-```
-
-Result: Smaller image, no dev tools in production.
-
-### Frontend Dockerfile — Multi-Stage Build
-
-```
-Stage 1 (builder):  npm install → npm run build (React → static files)
-Stage 2 (nginx):    Copy static files → Serve with Nginx
-```
-
-> ⚠️ `REACT_APP_API_URL` must be set at **build time** (baked into JS bundle).
-
-### docker-compose Services
-
-```
-mongo     → MongoDB 7 (internal only, no host port)
-backend   → Node.js API on port 5000
-frontend  → Nginx on port 3000
-```
-
-Startup order: `mongo` (healthy) → `backend` (healthy) → `frontend`
-
----
-
-## 🚀 Deployment
-
-### Full Deployment (Terraform + K8s)
-
-```bash
-# Step 1: Provision infrastructure (~15-20 min)
-cd terraform
-terraform apply -auto-approve
-
-# Step 2: Deploy application
-cd ..
-./deploy.sh
-```
-
-### What `deploy.sh` Does
-
-```
-1. Update kubeconfig for EKS
-2. Login to ECR
-3. Tag & push Docker images to ECR
-4. Create Kubernetes secrets
-5. Apply all K8s manifests
-6. Wait for MongoDB pods to be ready
-7. Initialize MongoDB Replica Set
-8. Restart Backend deployment
-9. Display ALB URL
-```
-
-### Useful Commands
-
-```bash
-# Monitor pods
-kubectl get pods -w
-
-# Check logs
-kubectl logs deployment/backend
-kubectl logs deployment/frontend
-kubectl logs mongo-0
-
-# Connect to MongoDB
-kubectl exec -it mongo-0 -- mongosh
-
-# Check Replica Set status
-kubectl exec -it mongo-0 -- mongosh --eval "rs.status()"
-
-# Get application URL
-kubectl get ingress amazona-ingress
-
-# Check Terraform state
-aws s3 ls s3://amazona-terraform-state-608645726975/dev/
-```
-
----
-
-## 🗑️ Teardown
-
-```bash
-# 1. Delete Ingress first (removes ALB)
-kubectl delete ingress amazona-ingress
-sleep 60
-
-# 2. Destroy all infrastructure
-cd terraform
-terraform destroy -auto-approve
-```
-
-> ⚠️ **Cost Warning:** EKS Control Plane costs ~$0.10/hour. Always destroy when not in use.
-
----
-
-## 🔐 Security
-
-- MongoDB has **no external port** exposed
-- All services use **ClusterIP** (internal only)
-- Only ALB is internet-facing
-- **IRSA** ensures least-privilege access for AWS services
-- Secrets stored as **Kubernetes Secrets** (not in code)
-- `.env` file excluded from Git via `.gitignore`
-
----
-
-## 👥 Team
-
-| Role | Responsibility |
-|------|---------------|
-| DevOps Engineer 1 | Docker, docker-compose |
-| DevOps Engineer 2 | Terraform, Kubernetes, EKS |
-
----
-
-<div align="center">
-
-**DEPI DevOps Graduation Project — 2026**
-
-</div>
+*End of Documentation - 2026*
