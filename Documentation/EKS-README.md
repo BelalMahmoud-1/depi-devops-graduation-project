@@ -37,8 +37,7 @@ User → AWS ALB → Ingress → Frontend (React) + Backend (Node.js) → MongoD
 
 ## 🏗️ Architecture
 
-![Architecture Diagram](Documentation/diagrams/K8s-diagram.png)
-
+![Kubernetes Architecture](Documentation/diagrams/K8s-diagram.png)
 ```
 ┌────────────────────────────────────────────────────┐
 │                AWS EKS Cluster                     │
