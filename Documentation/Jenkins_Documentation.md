@@ -98,7 +98,7 @@ depi-devops-graduation-project/
 
 The following diagram illustrates the **end-to-end Enhanced CI/CD Pipeline Architecture**, from developer commit to production deployment and monitoring.
 
-![Enhanced CI/CD Pipeline Architecture](./diagrams/CICD%20Archtecture.jpg)
+![CI/CD Pipeline Architecture](Documentation/diagrams/CICD.png)
 
 ### 3.1 Architecture Flow
 
