@@ -17,7 +17,6 @@
 6. [Pipeline Environment and Credentials](#6-pipeline-environment-and-credentials)
 7. [Pipeline Stages — Detailed Breakdown](#7-pipeline-stages--detailed-breakdown)
 8. [Code Quality — SonarQube Analysis](#8-code-quality--sonarqube-analysis)
-9. [Security Scanning — OWASP Dependency Check](#9-security-scanning--owasp-dependency-check)
 10. [Notifications — Slack Integration](#10-notifications--slack-integration)
 11. [Deployment to Amazon EKS](#11-deployment-to-amazon-eks)
 12. [Pipeline Stage Summary Table](#12-pipeline-stage-summary-table)
@@ -551,37 +550,12 @@ SonarQube acts as a **quality gate** between testing and deployment. Developers 
 
 ---
 
-## 9. Security Scanning — OWASP Dependency Check
-
-The enhanced CI/CD architecture includes **OWASP Dependency Check** as a dedicated security stage. This tool scans npm dependencies in both `frontend/` and `backend/` for known vulnerabilities (CVEs) listed in the National Vulnerability Database (NVD).
-
-![Jenkins Workspace — OWASP Dependency Check Reports](./diagrams/OWASP%20Dependency%20Check.png)
-
-### 9.1 What the Screenshot Shows
-
-The Jenkins workspace for build `#56` contains generated OWASP Dependency Check artifacts:
-
-| File | Description |
-|------|-------------|
-| `dependency-check-report.html` | Human-readable HTML vulnerability report |
-| `dependency-check-report.xml` | Machine-readable XML report for CI integration |
-| `.scannerwork/` | SonarQube scanner working directory |
-
-### 9.2 OWASP Dependency Check — Purpose
-
-| Aspect | Detail |
-|--------|--------|
-| **Scan Target** | `package.json` / `package-lock.json` dependencies |
-| **Database** | NVD (National Vulnerability Database) |
-| **Output** | CVE list with severity scores (CVSS) |
-| **Pipeline Role** | Prevents deployment of code with known vulnerable dependencies |
 
 ### 9.3 Relationship to Other Security Tools
 
 | Tool | Scope | Stage in Architecture |
 |------|-------|----------------------|
 | **SonarQube** | Source code quality and SAST | Stage 5 (Architecture) / Stage 3 (Jenkinsfile) |
-| **OWASP Dependency Check** | Third-party dependency CVEs | Stage 6 (Architecture) |
 | **Trivy File Scan** | Filesystem secrets and misconfigurations | Stage 7 (Architecture) |
 | **Trivy Image Scan** | Container OS and package vulnerabilities | Stage 10–11 (Architecture) / Stage 5 (Jenkinsfile) |
 
